@@ -24,6 +24,16 @@ DN_UNIT = {
     "FUV": u.def_unit("DN_IRIS_FUV", DETECTOR_GAIN["FUV"] / DETECTOR_YIELD["FUV"] * u.photon),
 }
 READOUT_NOISE = {"NUV": 1.2 * DN_UNIT["NUV"], "FUV": 3.1 * DN_UNIT["FUV"]}
+SPECTRAL_BAND = {
+    "C II 1336": "FUV",
+    "Fe XII 1349": "FUV",
+    "O I 1356 ": "FUV",
+    "Si IV 1394": "FUV",
+    "Si IV 1403": "FUV",
+    "2832": "NUV",
+    "2814": "NUV",
+    "Mg II k 2796": "NUV",
+}
 
 
 def read_iris_spectrograph_level2_fits(filenames, spectral_windows=None, uncertainty=True, memmap=False):
@@ -183,17 +193,19 @@ class IRISSGMeta(Meta, metaclass=SlitSpectrographMetaABC):
 
     def __str__(self):
         return textwrap.dedent(
-            f"""\
+            f"""
                 IRISMeta
                 --------
-                Observatory:\t\t{self.observatory}
-                Instrument:\t\t{self.instrument}
-                Detector:\t\t{self.detector}
-                Spectral Window:\t{self.spectral_window}
-                Spectral Range:\t\t{self.spectral_range}
-                Date:\t\t\t{self.date_reference}
-                OBS ID:\t\t\t{self.observing_mode_id}
-                OBS Description:\t{self.observing_mode_description}
+                Observatory:     {self.observatory}
+                Instrument:      {self.instrument}
+                Detector:        {self.detector}
+                Spectral Window: {self.spectral_window}
+                Spectral Range:  {self.spectral_range}
+                Spectral Band:   {self.spectral_band}
+                Dimensions:      {self.dimensions}
+                Date:            {self.date_reference}
+                OBS ID:          {self.observing_mode_id}
+                OBS Description: {self.observing_mode_description}
                 """
         )
 
@@ -249,6 +261,9 @@ class IRISSGMeta(Meta, metaclass=SlitSpectrographMetaABC):
         return int(self.get("OBSID"))
 
     # ---------- IRIS-specific metadata properties ----------
+    @property
+    def dimensions(self):
+        return self.shape.tolist()
 
     @property
     def observing_mode_description(self):
@@ -313,14 +328,21 @@ class IRISSGMeta(Meta, metaclass=SlitSpectrographMetaABC):
         return [self.get(f"TWMIN{self._iwin}"), self.get(f"TWMAX{self._iwin}")] * u.AA
 
     @property
-    def raster_FOV_width_y(self):
+    def spectral_band(self):
+        """
+        The spectral band of the spectral window.
+        """
+        return SPECTRAL_BAND[self.spectral_window]
+
+    @property
+    def raster_fov_width_y(self):
         """
         Width of the field of view of the raster in the Y (slit) direction.
         """
         return self.get("FOVY") * u.arcsec
 
     @property
-    def raster_FOV_width_x(self):
+    def raster_fov_width_x(self):
         """
         Width of the field of view of the raster in the X (rastering)
         direction.
@@ -328,7 +350,7 @@ class IRISSGMeta(Meta, metaclass=SlitSpectrographMetaABC):
         return self.get("FOVX") * u.arcsec
 
     @property
-    def FOV_center(self):
+    def fov_center(self):
         """
         Location of the center of the field of view.
         """
